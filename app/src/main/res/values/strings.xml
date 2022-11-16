@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">ShopList</string>
+    <string name="title_activity_product_list">ProductListActivity</string>
+    <string name="add_product">Add Product</string>
+    <string name="edit_product">Edit Product</string>
+    <string name="product_quantity_name">Quantity</string>
+    <string name="product_quantity_value">e.g. 123</string>
+    <string name="product_name_value">e.g. Salmon</string>
+    <string name="product_price_value">e.g. 230 zlotys</string>
+    <string name="product_price_name">Price</string>
+    <string name="product_name_name">Name</string>
+    <string name="shoplist_name_title">ShopList</string>
+    <string name="settings_name">Settings</string>
+</resources>
