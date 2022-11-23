@@ -1,6 +1,8 @@
 package smb.s18579.mb.shoplist
 
 import android.app.AlertDialog
+import android.content.ComponentName
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -30,6 +32,10 @@ class ProductListActivity : AppCompatActivity() {
         binding.arrowview.setOnClickListener {
             finish()
         }
+        if(intent.extras != null){
+            val product = ProductDTO(id = intent.extras!!.getLong("ITEM_ID").toInt(), name = intent.extras!!.getString("ITEM_NAME")!!, quantity = intent.extras!!.getInt("ITEM_QUANT"), price = intent.extras!!.getDouble("ITEM_PRICE"))
+            onClickProductDialog(product,"Edit Product")
+        }
 
     }
 
@@ -41,7 +47,6 @@ class ProductListActivity : AppCompatActivity() {
             adapter = adapterVH
             layoutManager = LinearLayoutManager(context)
         }
-        Log.d("xD",listOfProducts.toString())
         val swipeHandler = object : DeleteCallback(context = this) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 adapterVH.removeAt(viewHolder.adapterPosition)
@@ -72,10 +77,26 @@ class ProductListActivity : AppCompatActivity() {
             when(productDTO){
                 null -> {
                     setPositiveButton(android.R.string.ok) { _, _ ->
-                        Helper.db?.product?.insert(ProductDTO(name = name.text.toString(), quantity = if(quantity.text.toString()
+                        val product = ProductDTO(name = name.text.toString(), quantity = if(quantity.text.toString()
                                 .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0 , price = if(price.text.toString()
-                                .isNotEmpty())  price.text.toString().toDouble() else 0.0))
+                                .isNotEmpty())  price.text.toString().toDouble() else 0.0)
+                        val productID = Helper.db?.product?.insert(product)
+                        Log.d("Product ID" , productID.toString())
                         setUpAdapter()
+                        val broadcastIntent = Intent("smb.s18579.mb.CREATE_PRODUCT_INTENT")
+                        with(broadcastIntent){
+                            putExtra("ITEM_ID",productID)
+                            putExtra("ITEM_NAME",name.text.toString())
+                            putExtra("ITEM_QUANT",if(quantity.text.toString()
+                                    .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0 )
+                            putExtra("ITEM_PRICE",if(price.text.toString()
+                                    .isNotEmpty())  price.text.toString().toDouble() else 0.0)
+                            component = ComponentName(
+                                "smb.s18579.mb.shopbroadcast",
+                                "smb.s18579.mb.shopbroadcast.ItemCreationReceiver")
+                        }
+                        sendOrderedBroadcast(broadcastIntent,"smb.s18579.mb.PRODUCT_PERMISSIONS")
+
                     }
 
                 }
