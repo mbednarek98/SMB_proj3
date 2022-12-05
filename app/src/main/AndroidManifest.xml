@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <permission android:name="smb.s18579.mb.PRODUCT_PERMISSIONS" />
-    <uses-permission android:name="smb.s18579.mb.PRODUCT_PERMISSIONS" />
 
+    <uses-permission android:name="smb.s18579.mb.PRODUCT_PERMISSIONS" />
 
     <application
         android:allowBackup="true"
@@ -15,7 +15,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ShopList"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".CredentialsActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ShopList.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
         <activity
             android:name=".ProductListActivity"
             android:exported="true"
@@ -29,11 +43,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.ShopList.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />

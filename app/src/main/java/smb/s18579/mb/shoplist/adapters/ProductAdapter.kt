@@ -7,12 +7,11 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import smb.s18579.mb.shoplist.ProductListActivity
 import smb.s18579.mb.shoplist.R
-import smb.s18579.mb.shoplist.database.Helper
-import smb.s18579.mb.shoplist.database.product.ProductDTO
+import smb.s18579.mb.shoplist.database.Product
 import smb.s18579.mb.shoplist.databinding.ShoplistRowRecycleviewBinding
 
 class ProductViewHolder(private val binding: ShoplistRowRecycleviewBinding) : RecyclerView.ViewHolder(binding.root){
-    fun bind(product: ProductDTO) {
+    fun bind(product: Product) {
         binding.apply {
             productName.text = product.name
             productPrice.text = product.price.toString()
@@ -35,7 +34,11 @@ class ProductAdapter(private val activity : ProductListActivity): RecyclerView.A
             itemView.setOnClickListener { activity.onClickProductDialog(activity.listOfProducts[position],activity.resources.getString(R.string.edit_product)) }
             binding().productBought.setOnCheckedChangeListener { _, switchValue ->
                 activity.listOfProducts[position].bought = switchValue
-                Helper.db?.product?.update(activity.listOfProducts[position])
+                val pro = hashMapOf<String, Any>(
+                    "bought" to activity.listOfProducts[position].bought
+                )
+
+                activity.db.collection("products").document(activity.listOfProducts[position].id).update(pro)
             }
         }
 
@@ -63,8 +66,8 @@ class ProductAdapter(private val activity : ProductListActivity): RecyclerView.A
 
 
     fun removeAt(position: Int) {
-        activity.listOfProducts[position].let { Helper.db?.product?.delete(it) }
-        activity.setUpAdapter()
+        activity.db.collection("products").document(activity.listOfProducts[position].id).delete().addOnCompleteListener { activity.setUpAdapterNew() }
+        activity.listOfProducts.drop(position)
     }
 
     override fun getItemCount(): Int = activity.listOfProducts.size

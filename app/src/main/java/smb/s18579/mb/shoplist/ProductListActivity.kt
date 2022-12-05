@@ -1,8 +1,6 @@
 package smb.s18579.mb.shoplist
 
 import android.app.AlertDialog
-import android.content.ComponentName
-import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -12,18 +10,24 @@ import androidx.core.text.isDigitsOnly
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.ktx.toObject
+import com.google.firebase.ktx.Firebase
 import smb.s18579.mb.shoplist.adapters.ProductAdapter
 import smb.s18579.mb.shoplist.callbacks.DeleteCallback
-import smb.s18579.mb.shoplist.database.Helper
-import smb.s18579.mb.shoplist.database.product.ProductDTO
+import smb.s18579.mb.shoplist.database.Product
 import smb.s18579.mb.shoplist.databinding.ActivityProductListBinding
+import java.lang.Thread.sleep
 
 class ProductListActivity : AppCompatActivity() {
     private val binding by lazy { ActivityProductListBinding.inflate(layoutInflater) }
-    var listOfProducts : List<ProductDTO> = ArrayList()
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(binding.root)
+    var listOfProducts : MutableList<Product> = ArrayList()
+    lateinit var db : FirebaseFirestore
+    private lateinit var uid : String
+    private var showAll : Boolean = false
+    override fun onStart() {
+        super.onStart()
         setUpAdapter()
 
         binding.addproduct.setOnClickListener{
@@ -32,15 +36,77 @@ class ProductListActivity : AppCompatActivity() {
         binding.arrowview.setOnClickListener {
             finish()
         }
-        if(intent.extras != null){
-            val product = ProductDTO(id = intent.extras!!.getLong("ITEM_ID").toInt(), name = intent.extras!!.getString("ITEM_NAME")!!, quantity = intent.extras!!.getInt("ITEM_QUANT"), price = intent.extras!!.getDouble("ITEM_PRICE"))
-            onClickProductDialog(product,"Edit Product")
-        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(binding.root)
+        db = Firebase.firestore
+        uid = intent.extras!!.getString("uid").toString()
+        showAll = intent.extras!!.getBoolean("showall")
 
     }
 
+     fun setUpAdapterNew(){
+        listOfProducts  = ArrayList()
+        when (showAll) {
+            true -> {
+                db.collection("products")
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        for (document in documents) {
+                            val product = document.toObject<Product>()
+                            product.id = document.id
+                            listOfProducts.add(product)
+                        }
+                    }.addOnCompleteListener { Log.d("true",listOfProducts.toString())
+                        val adapterVH = ProductAdapter(this@ProductListActivity)
+
+                        binding.productview.apply {
+                            adapter = adapterVH
+                            layoutManager = LinearLayoutManager(context)
+                        }
+                        val swipeHandler = object : DeleteCallback(context = this) {
+                            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                                adapterVH.removeAt(viewHolder.adapterPosition)
+                            }
+                        }
+                        val itemTouchHelper = ItemTouchHelper(swipeHandler)
+                        itemTouchHelper.attachToRecyclerView(binding.productview) }
+            }
+            false -> {
+                db.collection("products")
+                    .whereEqualTo("uid", uid)
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        for (document in documents) {
+                            val product = document.toObject<Product>()
+                            product.id = document.id
+                            listOfProducts.add(product)
+                        }
+                    }.addOnCompleteListener {
+                        Log.d("false",listOfProducts.toString())
+                        val adapterVH = ProductAdapter(this@ProductListActivity)
+
+                        binding.productview.apply {
+                            adapter = adapterVH
+                            layoutManager = LinearLayoutManager(context)
+                        }
+                        val swipeHandler = object : DeleteCallback(context = this) {
+                            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                                adapterVH.removeAt(viewHolder.adapterPosition)
+                            }
+                        }
+                        val itemTouchHelper = ItemTouchHelper(swipeHandler)
+                        itemTouchHelper.attachToRecyclerView(binding.productview)
+                    }
+            }
+        }
+    }
+
     fun setUpAdapter(){
-        listOfProducts = Helper.db?.product?.selectAll() ?: ArrayList()
+        setUpAdapterNew()
+        Log.d("outside",listOfProducts.toString())
         val adapterVH = ProductAdapter(this@ProductListActivity)
 
         binding.productview.apply {
@@ -54,13 +120,12 @@ class ProductListActivity : AppCompatActivity() {
         }
         val itemTouchHelper = ItemTouchHelper(swipeHandler)
         itemTouchHelper.attachToRecyclerView(binding.productview)
-
     }
 
 
 
 
-    fun onClickProductDialog(productDTO: ProductDTO? = null, title: String? = null, description: String? = null){
+    fun onClickProductDialog(product: Product? = null, title: String? = null, description: String? = null){
         val dialog = AlertDialog.Builder(this)
 
         val dialogView = View.inflate(this, R.layout.product_dialog, null)
@@ -74,42 +139,46 @@ class ProductListActivity : AppCompatActivity() {
         with(dialog){
             setTitle(title)
             setMessage(description)
-            when(productDTO){
+            when(product){
                 null -> {
                     setPositiveButton(android.R.string.ok) { _, _ ->
-                        val product = ProductDTO(name = name.text.toString(), quantity = if(quantity.text.toString()
-                                .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0 , price = if(price.text.toString()
-                                .isNotEmpty())  price.text.toString().toDouble() else 0.0)
-                        val productID = Helper.db?.product?.insert(product)
-                        Log.d("Product ID" , productID.toString())
-                        setUpAdapter()
-                        val broadcastIntent = Intent("smb.s18579.mb.CREATE_PRODUCT_INTENT")
-                        with(broadcastIntent){
-                            putExtra("ITEM_ID",productID)
-                            putExtra("ITEM_NAME",name.text.toString())
-                            putExtra("ITEM_QUANT",if(quantity.text.toString()
-                                    .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0 )
-                            putExtra("ITEM_PRICE",if(price.text.toString()
-                                    .isNotEmpty())  price.text.toString().toDouble() else 0.0)
-                            component = ComponentName(
-                                "smb.s18579.mb.shopbroadcast",
-                                "smb.s18579.mb.shopbroadcast.ItemCreationReceiver")
-                        }
-                        sendOrderedBroadcast(broadcastIntent,"smb.s18579.mb.PRODUCT_PERMISSIONS")
+                        val pro = hashMapOf(
+                            "uid" to uid,
+                            "name" to name.text.toString(),
+                            "quantity" to if(quantity.text.toString()
+                                    .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0,
+                            "price" to if(price.text.toString()
+                                    .isNotEmpty())  price.text.toString().toDouble() else 0.0,
+                            "bought" to false
+                        )
+
+                        db.collection("products")
+                            .add(pro)
+                            .addOnSuccessListener { documentReference ->
+                                Log.d("Firestore", "DocumentSnapshot added with ID: ${documentReference.id}")
+                                setUpAdapterNew()
+                            }
+
 
                     }
 
                 }
                 else -> {
-                    name.setText(productDTO.name)
-                    quantity.setText(productDTO.quantity.toString())
-                    price.setText(productDTO.price.toString())
+                    name.setText(product.name)
+                    quantity.setText(product.quantity.toString())
+                    price.setText(product.price.toString())
                     setPositiveButton(android.R.string.ok) { _, _ ->
-                        productDTO.name = name.text.toString()
-                        productDTO.quantity = quantity.text.toString().toInt()
-                        productDTO.price = price.text.toString().toDouble()
-                        Helper.db?.product?.update(productDTO)
-                        setUpAdapter()
+                        val pro = hashMapOf<String, Any>(
+                            "uid" to uid,
+                            "name" to name.text.toString(),
+                            "quantity" to if(quantity.text.toString()
+                                    .isNotEmpty() && quantity.text.toString().isDigitsOnly()) quantity.text.toString().toInt() else 0,
+                            "price" to if(price.text.toString()
+                                    .isNotEmpty())  price.text.toString().toDouble() else 0.0,
+                            "bought" to product.bought
+                        )
+
+                        db.collection("products").document(product.id).update(pro).addOnSuccessListener {  setUpAdapterNew() }
                     }
                 }
             }

@@ -6,8 +6,6 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import smb.s18579.mb.shoplist.database.AppDB
-import smb.s18579.mb.shoplist.database.Helper
 import smb.s18579.mb.shoplist.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -15,13 +13,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        Helper.db = AppDB.open(applicationContext)
         val pref = getSharedPreferences("save",Context.MODE_PRIVATE)
         preferencesSetUp(pref)
         radioButtonSetUp(pref)
         onClickRadioButton(pref)
+        binding.shoplistbuttonAll.setOnClickListener {
+            startActivity(Intent(this, ProductListActivity::class.java).putExtra("showall",true).putExtra("uid", intent.extras!!.getString("uid").toString()))
+        }
         binding.shoplistbutton.setOnClickListener {
-            startActivity(Intent(this, ProductListActivity::class.java))
+            startActivity(Intent(this, ProductListActivity::class.java).putExtra("showall",false).putExtra("uid", intent.extras!!.getString("uid").toString()))
         }
     }
 

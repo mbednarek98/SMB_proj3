@@ -11,4 +11,9 @@
     <string name="product_name_name">Name</string>
     <string name="shoplist_name_title">ShopList</string>
     <string name="settings_name">Settings</string>
+    <string name="email">Email</string>
+    <string name="email_example">abc@cbd.com</string>
+    <string name="password">Password</string>
+    <string name="log_in">LOG IN</string>
+    <string name="register">REGISTER</string>
 </resources>
